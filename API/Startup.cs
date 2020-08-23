@@ -1,4 +1,6 @@
 
+using API.Helpers;
+using AutoMapper;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Builder;
@@ -24,6 +26,8 @@ namespace API
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<IProductRepository, ProductRepository>();
+            services.AddScoped(typeof(IGenericRepository<>),(typeof(GenericRepository<>)));
+            services.AddAutoMapper(typeof(MappingProfiles));
             services.AddControllers();
             services.AddDbContext<skinetContext>(x=>x.UseSqlServer(_config.GetConnectionString("DefaultConnection")));
             services.AddControllersWithViews()
@@ -43,6 +47,8 @@ namespace API
             app.UseHttpsRedirection();//redirected to https if request is on http
 
             app.UseRouting();//getting us to a controller we are hiting
+
+            app.UseStaticFiles();
 
             app.UseAuthorization();
             //when we start a application its gonna map all of the endpoint of our controller, so our  api server knows where to send request to 
