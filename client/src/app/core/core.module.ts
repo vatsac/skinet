@@ -2,6 +2,7 @@ import { RouterModule } from '@angular/router';
 import { NavBarComponent } from './nav-bar/nav-bar.component';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ToastrModule } from 'ngx-toastr';
 
 
 
@@ -9,7 +10,11 @@ import { CommonModule } from '@angular/common';
   declarations: [NavBarComponent],
   imports: [
     CommonModule,
-    RouterModule
+    RouterModule,
+    ToastrModule.forRoot({
+      positionClass: 'toast-bottom-right',
+      preventDuplicates: true
+    })
   ],
   exports: [NavBarComponent]
 })
