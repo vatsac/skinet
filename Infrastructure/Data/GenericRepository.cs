@@ -48,6 +48,26 @@ namespace Infrastructure.Data
             return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(), spec);
         }
 
+        public void Add(T entity)
+        {
+             _context.Set<T>().Add(entity);
+        }
 
+        public void Update(T entity)
+        {
+            _context.Set<T>().Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+        }
+
+        public void Delete(T entity)
+        {
+            _context.Set<T>().Remove(entity);
+        }
+
+        public async Task<int> LastUpdatedIdAsync()
+        {
+            int Orderid = await (from record in _context.Orders orderby record.Id descending select record.Id).FirstAsync();
+            return Orderid;
+        }
     }
 }

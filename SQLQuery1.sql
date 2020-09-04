@@ -58,3 +58,52 @@ INSERT INTO Product(Name,Description,Price,PictureUrl,ProductTypeId,ProductBrand
 INSERT INTO Product(Name,Description,Price,PictureUrl,ProductTypeId,ProductBrandId) VALUES ('Angular Purple Boots','Aenean nec lorem. In porttitor. Donec laoreet nonummy augue.',150,'images/products/boot-ang2.png',3,1);
 INSERT INTO Product(Name,Description,Price,PictureUrl,ProductTypeId,ProductBrandId) VALUES ('Angular Blue Boots','Suspendisse dui purus, scelerisque at, vulputate vitae, pretium mattis, nunc. Mauris eget neque at sem venenatis eleifend. Ut nonummy.',180,'images/products/boot-ang1.png',3,1);
 
+
+create table DeliveryMethod(
+Id int primary key identity,
+ShortName Varchar(max),
+DeliveryTime Varchar(max),
+Description Varchar(max),
+Price Decimal(18,2))
+
+INSERT INTO DeliveryMethod(ShortName,Description,DeliveryTime,Price) VALUES ('UPS1','Fastest delivery time','1-2 Days',10);
+INSERT INTO DeliveryMethod(ShortName,Description,DeliveryTime,Price) VALUES ('UPS2','Get it within 5 days','2-5 Days',5);
+INSERT INTO DeliveryMethod(ShortName,Description,DeliveryTime,Price) VALUES ('UPS3','Slower but cheap','5-10 Days',2);
+INSERT INTO DeliveryMethod(ShortName,Description,DeliveryTime,Price) VALUES ('FREE','Free! You get what you pay for','1-2 Weeks',0);
+
+
+
+
+create table Orders(
+Id int primary key identity,
+BuyerEmail varchar(max),
+OrderDate DateTimeOffset not null default GETDATE(),
+ShipToAddress_FirstName varchar(max),
+ShipToAddress_LastName varchar(max),
+ShipToAddress_Street varchar(max),
+ShipToAddress_City varchar(max),
+ShipToAddress_State varchar(max),
+ShipToAddress_Zipcode varchar(max),
+DeliveryMethod int not null
+Constraint FK_DeliveryMethod Foreign Key(DeliveryMethod)
+references DeliveryMethod(Id),
+Subtotal Decimal(18,2),
+Status varchar(max) not null default 'Pending',
+PaymentIntenId varchar(max))
+
+create table OrderItem(
+Id int primary key identity,
+ItemOrdered_ProductItemId int,
+ItemOrdered_ProductName varchar(max),
+ItemOrdered_PictureUrl varchar(max),
+Price decimal(18,2),
+Quantity int,
+OrderId int not null
+Constraint FK_OrdersId Foreign Key(OrderId)
+references Orders(Id))
+
+
+
+
+
+
