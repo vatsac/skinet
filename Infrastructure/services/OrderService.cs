@@ -14,9 +14,11 @@ namespace Infrastructure.services
 
         private readonly IBasketRepository _basketRepo;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IPaymentService _paymentService;
 
-        public OrderService(IUnitOfWork unitOfWork, IBasketRepository basketRepo)
+        public OrderService(IUnitOfWork unitOfWork, IBasketRepository basketRepo, IPaymentService paymentService)
         {
+            _paymentService = paymentService;
             _unitOfWork = unitOfWork;
             _basketRepo = basketRepo;
 
@@ -34,12 +36,13 @@ namespace Infrastructure.services
                 var productItem = await _unitOfWork.Repository<Product>().GetByIdAsync(item.Id);
                 var itemOrdered = new ProductItemOrdered(productItem.Id, productItem.Name, productItem.PictureUrl);
                 //var OrderItem = new OrderItem(itemOrdered, productItem.Price, item.Quantity);
-                var OrderItem = new OrderItem {
-                ItemOrderedProductItemId = productItem.Id,
-                ItemOrderedProductName = productItem.Name,
-                ItemOrderedPictureUrl = productItem.PictureUrl,
-                Price = productItem.Price,
-                Quantity = item.Quantity
+                var OrderItem = new OrderItem
+                {
+                    ItemOrderedProductItemId = productItem.Id,
+                    ItemOrderedProductName = productItem.Name,
+                    ItemOrderedPictureUrl = productItem.PictureUrl,
+                    Price = productItem.Price,
+                    Quantity = item.Quantity
                 };
                 items.Add(OrderItem);
             }
@@ -49,6 +52,16 @@ namespace Infrastructure.services
 
             // calc subtotal
             var subtotal = items.Sum(item => item.Price * item.Quantity);
+
+            //check to see if order exists
+            var spec = new OrderByPaymentIntentIdSpecification(basket.PaymentIntentId);
+            var existingOrder = await _unitOfWork.Repository<Orders>().GetEntityWithSpec(spec);
+
+            if (existingOrder != null)
+            {
+                _unitOfWork.Repository<Orders>().Delete(existingOrder);
+                await _paymentService.CreateOrUpdatePaymentIntent(basket.PaymentIntentId);
+            }
 
             // create order
             //var order = new Orders(items, buyerEmail, shippingAddress, deliveryMethod, subtotal);
@@ -63,29 +76,34 @@ namespace Infrastructure.services
                 ShipToAddressZipcode = shippingAddress.Zipcode,
                 DeliveryMethod = deliveryMethod.Id,
                 Subtotal = subtotal,
+                PaymentIntenId = basket.PaymentIntentId
             };
             _unitOfWork.Repository<Orders>().Add(order);
 
 
             // save to db
             var result = await _unitOfWork.Complete();
-             int orderId = await _unitOfWork.Repository<Orders>().LastUpdatedIdAsync();
+            int orderId = await _unitOfWork.Repository<Orders>().LastUpdatedIdAsync();
 
-            if (result <= 0) {
+            if (result <= 0)
+            {
                 return null;
             }
-            else {
+            else
+            {
 
-                foreach(var item in items){
-                var OrderItem = new OrderItem {
-                ItemOrderedProductItemId = item.ItemOrderedProductItemId,
-                ItemOrderedProductName = item.ItemOrderedProductName,
-                ItemOrderedPictureUrl = item.ItemOrderedPictureUrl,
-                Price = item.Price,
-                Quantity = item.Quantity,
-                OrderId = orderId
-                };
-                _unitOfWork.Repository<OrderItem>().Add(OrderItem);
+                foreach (var item in items)
+                {
+                    var OrderItem = new OrderItem
+                    {
+                        ItemOrderedProductItemId = item.ItemOrderedProductItemId,
+                        ItemOrderedProductName = item.ItemOrderedProductName,
+                        ItemOrderedPictureUrl = item.ItemOrderedPictureUrl,
+                        Price = item.Price,
+                        Quantity = item.Quantity,
+                        OrderId = orderId
+                    };
+                    _unitOfWork.Repository<OrderItem>().Add(OrderItem);
                 }
 
 
@@ -93,13 +111,9 @@ namespace Infrastructure.services
 
             var ResultFromOrderItem = await _unitOfWork.Complete();
 
-            if(ResultFromOrderItem <= 0) return null;
+            if (ResultFromOrderItem <= 0) return null;
 
-
-
-            // delete basket
-            await _basketRepo.DeleteBasketAsync(basketId);
-            // return order
+        // return order
             return order;
         }
 
@@ -110,10 +124,10 @@ namespace Infrastructure.services
 
         public async Task<Orders> GetOrderByIdAsync(int id, string buyerEmail)
         {
-            var spec = new OrderWithItemsAndOrderingSpecification(id,buyerEmail);
+            var spec = new OrderWithItemsAndOrderingSpecification(id, buyerEmail);
 
             return await _unitOfWork.Repository<Orders>().GetEntityWithSpec(spec);
- 
+
         }
 
         public async Task<IReadOnlyList<Orders>> GetOrdersForUserAsync(string buyerEmail)
